@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clinical Notes</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/docx@8.2.2/build/index.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="openTab('timeline')">Timeline & Background</button>
+            <button class="tab-btn" onclick="openTab('casenote')">Session Case Note</button>
+        </div>
+
+        <!-- TIMELINE TAB -->
+        <div id="timeline" class="tab-panel active">
+            <div class="btn-group">
+                <button class="btn btn-green" onclick="exportTimeline()">📄 Export Timeline to Word</button>
+            </div>
+            <h2>Client Timeline & Background</h2>
+            
+            <h3>TIMELINE HISTORY</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Age/Period</th>
+                        <th>Symptoms/Changes</th>
+                        <th>Context/Triggers</th>
+                        <th>Response/Outcomes</th>
+                        <th style="width: 50px;"></th>
+                    </tr>
+                </thead>
+                <tbody id="timeline-rows">
+                    <!-- Rows added here -->
+                </tbody>
+            </table>
+            <button class="btn btn-small" onclick="addTimelineRow()">+ Add Row</button>
+
+            <hr>
+
+            <div class="grid-2">
+                <!-- Relationships -->
+                <div>
+                    <h3>RELATIONSHIPS</h3>
+                    <div id="family-list"></div>
+                    <button class="btn btn-small" onclick="addFamily()">+ Add Family Member</button>
+                </div>
+                
+                <!-- Interests -->
+                <div>
+                    <h3>HOBBIES</h3>
+                    <div id="hobby-list"></div>
+                    <button class="btn btn-small" onclick="addHobby()">+ Add Hobby</button>
+                    
+                    <h3 style="margin-top: 20px;">MUSIC</h3>
+                    <div id="music-list"></div>
+                    <button class="btn btn-small" onclick="addMusic()">+ Add Music</button>
+                    
+                    <h3 style="margin-top: 20px;">FILMS/SHOWS</h3>
+                    <div id="film-list"></div>
+                    <button class="btn btn-small" onclick="addFilm()">+ Add Film</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- CASE NOTE TAB -->
+        <div id="casenote" class="tab-panel">
+            <div class="btn-group">
+                <button class="btn btn-green" onclick="exportCaseNote()">📄 Export Case Note to Word</button>
+            </div>
+            <h2>Session Case Note</h2>
+            
+            <div class="grid-3">
+                <input type="text" id="client-id" placeholder="Client ID">
+                <input type="text" id="therapist" placeholder="Therapist Name" value="Your Name">
+                <input type="text" id="supervisor" placeholder="Supervisor Name">
+            </div>
+            
+            <div class="grid-3">
+                <input type="text" id="demographics" placeholder="Age, Gender, Occupation">
+                <input type="text" id="session-num" placeholder="Session #">
+                <input type="date" id="session-date">
+            </div>
+            
+            <div class="grid-3">
+                <input type="text" id="session-time" placeholder="Time">
+                <input type="text" id="agenda" placeholder="Agenda">
+                <select id="session-focus">
+                    <option>Continuing issues from last session</option>
+                    <option>Client focusing on new topic</option>
+                </select>
+            </div>
+            
+            <h3>1. Subjective Information</h3>
+            <textarea id="subjective" placeholder="Presenting concern, Context, Somatic symptoms..."></textarea>
+            
+            <h3>2. Objective (Observations/MSE)</h3>
+            <textarea id="objective" placeholder="Appearance, behavior, speech, mood, affect, thought process..."></textarea>
+            
+            <h3>3. Assessment</h3>
+            <textarea id="assessment" placeholder="Clinical impressions, progress..."></textarea>
+            
+            <h3>4. Session Plan</h3>
+            <textarea id="plan" placeholder="Interventions, homework, next steps..."></textarea>
+            
+            <h3>Justification</h3>
+            <textarea id="justification" placeholder="Clinical rationale"></textarea>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
