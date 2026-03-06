@@ -1,0 +1,211 @@
+* {
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background: #f0f2f5;
+    margin: 0;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* Tabs */
+.tabs {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 0;
+}
+
+.tab-btn {
+    padding: 12px 25px;
+    border: none;
+    background: #ddd;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    border-radius: 8px 8px 0 0;
+    transition: background 0.2s;
+}
+
+.tab-btn:hover {
+    background: #ccc;
+}
+
+.tab-btn.active {
+    background: #2c3e50;
+    color: white;
+}
+
+/* Tab panels */
+.tab-panel {
+    background: white;
+    padding: 25px;
+    border-radius: 0 8px 8px 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    display: none;
+}
+
+.tab-panel.active {
+    display: block;
+}
+
+/* Typography */
+h2 {
+    margin-top: 0;
+    color: #2c3e50;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 10px;
+}
+
+h3 {
+    color: #34495e;
+    margin: 20px 0 10px;
+}
+
+/* Buttons */
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    margin: 0 5px 5px 0;
+    transition: background 0.2s;
+}
+
+.btn-blue {
+    background: #3498db;
+    color: white;
+}
+
+.btn-blue:hover {
+    background: #2980b9;
+}
+
+.btn-green {
+    background: #27ae60;
+    color: white;
+}
+
+.btn-green:hover {
+    background: #219a52;
+}
+
+.btn-dark {
+    background: #2c3e50;
+    color: white;
+}
+
+.btn-dark:hover {
+    background: #1a252f;
+}
+
+.btn-small {
+    background: #ecf0f1;
+    padding: 5px 10px;
+    font-size: 14px;
+}
+
+.btn-small:hover {
+    background: #d5dbdb;
+}
+
+.btn-del {
+    background: none;
+    color: #e74c3c;
+    font-size: 20px;
+    border: none;
+    cursor: pointer;
+    padding: 0 5px;
+}
+
+.btn-del:hover {
+    color: #c0392b;
+}
+
+.btn-group {
+    float: right;
+}
+
+/* Form elements */
+input, textarea, select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: #3498db;
+}
+
+textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+/* Dynamic rows */
+.row-entry {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 8px;
+    align-items: center;
+}
+
+.row-entry input {
+    margin-bottom: 0;
+}
+
+/* Tables */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 15px 0;
+}
+
+th {
+    background: #34495e;
+    color: white;
+    padding: 10px;
+    text-align: left;
+    font-weight: 600;
+}
+
+td {
+    border: 1px solid #ddd;
+    padding: 8px;
+}
+
+td input {
+    width: 100%;
+    margin: 0;
+    padding: 6px;
+}
+
+/* Grid layouts */
+.grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+
+.grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+}
+
+/* Dividers */
+hr {
+    margin: 30px 0;
+    border: none;
+    border-top: 2px solid #eee;
+}
