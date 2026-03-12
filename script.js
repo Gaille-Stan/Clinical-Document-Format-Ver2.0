@@ -186,12 +186,6 @@ window.exportCaseNote = async function() {
                                     new Paragraph({ text: '4. PLAN', bold: true }),
                                     new Paragraph(get('plan'))
                                 ]})
-                            ]}),
-                            new TableRow({ children: [
-                                new TableCell({ columnSpan: 3, children: [
-                                    new Paragraph({ text: 'JUSTIFICATION', bold: true }),
-                                    new Paragraph(get('justification'))
-                                ]})
                             ]})
                         ]
                     })
