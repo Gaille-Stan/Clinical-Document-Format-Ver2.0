@@ -1,9 +1,39 @@
+// Check if docx is loaded
+let docxLoaded = false;
+
+// Function to wait for docx to load
+function waitForDocx() {
+    return new Promise((resolve) => {
+        if (typeof docx !== 'undefined') {
+            docxLoaded = true;
+            resolve(true);
+            return;
+        }
+        
+        // Check every 100ms for up to 10 seconds
+        let attempts = 0;
+        const interval = setInterval(() => {
+            attempts++;
+            if (typeof docx !== 'undefined') {
+                clearInterval(interval);
+                docxLoaded = true;
+                resolve(true);
+            } else if (attempts >= 100) {
+                clearInterval(interval);
+                resolve(false);
+            }
+        }, 100);
+    });
+}
+
 // Tab switching
 window.openTab = function(tabName) {
     document.querySelectorAll('.tab-panel').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.getElementById(tabName).classList.add('active');
-    event.target.classList.add('active');
+    if (event && event.target) {
+        event.target.classList.add('active');
+    }
 };
 
 // Helper to add input rows
@@ -38,7 +68,39 @@ window.addMusic = (v = '') => addRow('music-list', 'Music', v);
 window.addFilm = (v = '') => addRow('film-list', 'Film/Show', v);
 
 // Initialize app
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
+    // Show loading indicator
+    const loadingDiv = document.getElementById('loading-indicator');
+    if (loadingDiv) loadingDiv.style.display = 'block';
+    
+    // Wait for docx to load
+    const loaded = await waitForDocx();
+    
+    if (loadingDiv) loadingDiv.style.display = 'none';
+    
+    if (loaded) {
+        console.log('docx library loaded successfully!');
+        // Enable export buttons
+        const timelineBtn = document.getElementById('exportTimelineBtn');
+        const caseNoteBtn = document.getElementById('exportCaseNoteBtn');
+        if (timelineBtn) timelineBtn.disabled = false;
+        if (caseNoteBtn) caseNoteBtn.disabled = false;
+    } else {
+        console.error('Failed to load docx library');
+        alert('Failed to load the document generation library. Please check your internet connection and refresh the page.');
+        // Disable export buttons
+        const timelineBtn = document.getElementById('exportTimelineBtn');
+        const caseNoteBtn = document.getElementById('exportCaseNoteBtn');
+        if (timelineBtn) {
+            timelineBtn.disabled = true;
+            timelineBtn.title = 'Library failed to load. Please refresh the page.';
+        }
+        if (caseNoteBtn) {
+            caseNoteBtn.disabled = true;
+            caseNoteBtn.title = 'Library failed to load. Please refresh the page.';
+        }
+    }
+    
     // Add initial timeline row
     addTimelineRow();
     
@@ -53,7 +115,10 @@ document.addEventListener('DOMContentLoaded', function() {
     addFilm('Documentary');
     
     // Set today's date
-    document.getElementById('session-date').value = new Date().toISOString().split('T')[0];
+    const dateInput = document.getElementById('session-date');
+    if (dateInput) {
+        dateInput.value = new Date().toISOString().split('T')[0];
+    }
     
     console.log('App ready!');
 });
@@ -61,13 +126,12 @@ document.addEventListener('DOMContentLoaded', function() {
 // EXPORT FUNCTIONS
 window.exportTimeline = async function() {
     try {
-        // Wait for docx to be available
-        if (typeof docx === 'undefined') {
-            alert('docx library is still loading. Please wait a moment and try again.');
+        if (!docxLoaded || typeof docx === 'undefined') {
+            alert('Document library is still loading. Please wait a moment and try again.');
             return;
         }
         
-        const { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, HeadingLevel, AlignmentType, BorderStyle, TextRun } = docx;
+        const { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, AlignmentType, BorderStyle, TextRun } = docx;
         
         const rows = Array.from(document.querySelectorAll('#timeline-rows tr'));
         
@@ -205,12 +269,12 @@ window.exportTimeline = async function() {
 
 window.exportCaseNote = async function() {
     try {
-        if (typeof docx === 'undefined') {
-            alert('docx library is still loading. Please wait a moment and try again.');
+        if (!docxLoaded || typeof docx === 'undefined') {
+            alert('Document library is still loading. Please wait a moment and try again.');
             return;
         }
         
-        const { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, HeadingLevel, AlignmentType, BorderStyle, TextRun } = docx;
+        const { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, AlignmentType, BorderStyle, TextRun } = docx;
         
         const get = (id) => document.getElementById(id)?.value || '';
         
