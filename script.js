@@ -59,10 +59,16 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // EXPORT FUNCTIONS
-const { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, HeadingLevel, AlignmentType } = docx;
-
 window.exportTimeline = async function() {
     try {
+        // Check if docx is loaded
+        if (typeof docx === 'undefined') {
+            alert('docx library not loaded. Please check your internet connection and refresh the page.');
+            return;
+        }
+        
+        const { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, HeadingLevel, AlignmentType, BorderStyle } = docx;
+        
         const rows = Array.from(document.querySelectorAll('#timeline-rows tr'));
         
         if (rows.length === 0) {
@@ -70,11 +76,21 @@ window.exportTimeline = async function() {
             return;
         }
 
-        // Create table headers
+        // Create table headers with proper styling
         const headers = ['Age/Period', 'Symptoms', 'Context', 'Outcomes'].map(h => 
-            new TableCell({ 
-                shading: { fill: '34495e' },
-                children: [new Paragraph({ text: h, bold: true, color: 'ffffff' })] 
+            new TableCell({
+                borders: {
+                    top: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+                    bottom: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+                    left: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+                    right: { style: BorderStyle.SINGLE, size: 1, color: "000000" }
+                },
+                shading: { fill: "34495e" },
+                children: [new Paragraph({ 
+                    text: h, 
+                    bold: true,
+                    color: "ffffff"
+                })] 
             })
         );
 
@@ -82,11 +98,28 @@ window.exportTimeline = async function() {
             new TableRow({ children: headers }),
             ...rows.map(row => {
                 const inputs = Array.from(row.querySelectorAll('input'));
-                return new TableRow({
-                    children: inputs.map(i => 
-                        new TableCell({ children: [new Paragraph(i.value || ' ')] })
-                    )
-                });
+                const cells = inputs.map(i => 
+                    new TableCell({
+                        borders: {
+                            top: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" },
+                            bottom: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" },
+                            left: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" },
+                            right: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" }
+                        },
+                        children: [new Paragraph(i.value || ' ')]
+                    })
+                );
+                // Add delete button cell (empty in export)
+                cells.push(new TableCell({
+                    borders: {
+                        top: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" },
+                        bottom: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" },
+                        left: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" },
+                        right: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" }
+                    },
+                    children: [new Paragraph('')]
+                }));
+                return new TableRow({ children: cells });
             })
         ];
 
@@ -98,94 +131,210 @@ window.exportTimeline = async function() {
 
         const doc = new Document({
             sections: [{
+                properties: {},
                 children: [
-                    new Paragraph({ text: 'CLIENT TIMELINE & BACKGROUND', heading: HeadingLevel.HEADING_1, alignment: AlignmentType.CENTER }),
-                    new Paragraph(''),
-                    new Paragraph({ text: 'TIMELINE HISTORY', bold: true }),
-                    new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: tableRows }),
-                    new Paragraph(''),
-                    new Paragraph({ text: 'RELATIONSHIPS', bold: true }),
-                    ...family.map(f => new Paragraph(`• ${f}`)),
-                    new Paragraph(''),
-                    new Paragraph({ text: 'INTERESTS', bold: true }),
+                    new Paragraph({
+                        text: 'CLIENT TIMELINE & BACKGROUND',
+                        heading: HeadingLevel.HEADING_1,
+                        alignment: AlignmentType.CENTER,
+                        spacing: { after: 200 }
+                    }),
+                    new Paragraph({ text: '' }),
+                    new Paragraph({
+                        text: 'TIMELINE HISTORY',
+                        bold: true,
+                        spacing: { before: 200, after: 100 }
+                    }),
+                    new Table({
+                        width: { size: 100, type: WidthType.PERCENTAGE },
+                        rows: tableRows
+                    }),
+                    new Paragraph({ text: '' }),
+                    new Paragraph({
+                        text: 'RELATIONSHIPS',
+                        bold: true,
+                        spacing: { before: 200, after: 100 }
+                    }),
+                    ...(family.length ? family.map(f => new Paragraph(`• ${f}`)) : [new Paragraph('None listed')]),
+                    new Paragraph({ text: '' }),
+                    new Paragraph({
+                        text: 'INTERESTS',
+                        bold: true,
+                        spacing: { before: 200, after: 100 }
+                    }),
                     new Paragraph({ text: 'Hobbies:', bold: true }),
-                    ...hobbies.map(h => new Paragraph(`  • ${h}`)),
+                    ...(hobbies.length ? hobbies.map(h => new Paragraph(`  • ${h}`)) : [new Paragraph('  • None listed')]),
                     new Paragraph({ text: 'Music:', bold: true }),
-                    ...music.map(m => new Paragraph(`  • ${m}`)),
+                    ...(music.length ? music.map(m => new Paragraph(`  • ${m}`)) : [new Paragraph('  • None listed')]),
                     new Paragraph({ text: 'Films/Shows:', bold: true }),
-                    ...films.map(f => new Paragraph(`  • ${f}`))
+                    ...(films.length ? films.map(f => new Paragraph(`  • ${f}`)) : [new Paragraph('  • None listed')])
                 ]
             }]
         });
 
         const blob = await Packer.toBlob(doc);
-        saveAs(blob, 'Client_Timeline.docx');
+        if (typeof saveAs !== 'undefined') {
+            saveAs(blob, 'Client_Timeline.docx');
+        } else {
+            // Fallback download method
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.href = url;
+            link.download = 'Client_Timeline.docx';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
         alert('Timeline exported successfully!');
     } catch (error) {
-        alert('Error: ' + error.message);
-        console.error(error);
+        console.error('Export error:', error);
+        alert('Error exporting timeline: ' + error.message);
     }
 };
 
 window.exportCaseNote = async function() {
     try {
+        // Check if docx is loaded
+        if (typeof docx === 'undefined') {
+            alert('docx library not loaded. Please check your internet connection and refresh the page.');
+            return;
+        }
+        
+        const { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, HeadingLevel, AlignmentType, BorderStyle } = docx;
+        
         const get = (id) => document.getElementById(id)?.value || ' ';
 
         const doc = new Document({
             sections: [{
+                properties: {},
                 children: [
-                    new Paragraph({ text: 'SESSION CASE NOTE', heading: HeadingLevel.HEADING_1, alignment: AlignmentType.CENTER }),
-                    new Paragraph(''),
+                    new Paragraph({
+                        text: 'SESSION CASE NOTE',
+                        heading: HeadingLevel.HEADING_1,
+                        alignment: AlignmentType.CENTER,
+                        spacing: { after: 200 }
+                    }),
+                    new Paragraph({ text: '' }),
                     new Table({
                         width: { size: 100, type: WidthType.PERCENTAGE },
                         rows: [
                             new TableRow({ children: [
-                                new TableCell({ children: [
-                                    new Paragraph({ text: 'Client Information', bold: true }),
-                                    new Paragraph(`ID: ${get('client-id')}`),
-                                    new Paragraph(`Client: ${get('demographics')}`)
-                                ]}),
-                                new TableCell({ children: [
-                                    new Paragraph({ text: 'Session Details', bold: true }),
-                                    new Paragraph(`Therapist: ${get('therapist')}`),
-                                    new Paragraph(`Date: ${get('session-date')}`),
-                                    new Paragraph(`Time: ${get('session-time')}`)
-                                ]}),
-                                new TableCell({ children: [
-                                    new Paragraph({ text: 'Additional', bold: true }),
-                                    new Paragraph(`Supervisor: ${get('supervisor')}`),
-                                    new Paragraph(`Session #: ${get('session-num')}`)
-                                ]})
+                                new TableCell({
+                                    borders: {
+                                        top: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+                                        bottom: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+                                        left: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+                                        right: { style: BorderStyle.SINGLE, size: 1, color: "000000" }
+                                    },
+                                    children: [
+                                        new Paragraph({ text: 'Client Information', bold: true }),
+                                        new Paragraph(`ID: ${get('client-id')}`),
+                                        new Paragraph(`Client: ${get('demographics')}`)
+                                    ]
+                                }),
+                                new TableCell({
+                                    borders: {
+                                        top: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+                                        bottom: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+                                        left: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+                                        right: { style: BorderStyle.SINGLE, size: 1, color: "000000" }
+                                    },
+                                    children: [
+                                        new Paragraph({ text: 'Session Details', bold: true }),
+                                        new Paragraph(`Therapist: ${get('therapist')}`),
+                                        new Paragraph(`Date: ${get('session-date')}`),
+                                        new Paragraph(`Time: ${get('session-time')}`)
+                                    ]
+                                }),
+                                new TableCell({
+                                    borders: {
+                                        top: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+                                        bottom: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+                                        left: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+                                        right: { style: BorderStyle.SINGLE, size: 1, color: "000000" }
+                                    },
+                                    children: [
+                                        new Paragraph({ text: 'Additional', bold: true }),
+                                        new Paragraph(`Supervisor: ${get('supervisor')}`),
+                                        new Paragraph(`Session #: ${get('session-num')}`)
+                                    ]
+                                })
                             ]}),
                             new TableRow({ children: [
-                                new TableCell({ columnSpan: 3, children: [
-                                    new Paragraph({ text: `Agenda: ${get('agenda')}`, bold: true })
-                                ]})
+                                new TableCell({
+                                    columnSpan: 3,
+                                    borders: {
+                                        top: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+                                        bottom: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+                                        left: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+                                        right: { style: BorderStyle.SINGLE, size: 1, color: "000000" }
+                                    },
+                                    children: [
+                                        new Paragraph({ text: `Agenda: ${get('agenda')}`, bold: true })
+                                    ]
+                                })
                             ]}),
                             new TableRow({ children: [
-                                new TableCell({ columnSpan: 3, children: [
-                                    new Paragraph({ text: '1. SUBJECTIVE', bold: true }),
-                                    new Paragraph(`Focus: ${get('session-focus')}`),
-                                    new Paragraph(get('subjective'))
-                                ]})
+                                new TableCell({
+                                    columnSpan: 3,
+                                    borders: {
+                                        top: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+                                        bottom: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+                                        left: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+                                        right: { style: BorderStyle.SINGLE, size: 1, color: "000000" }
+                                    },
+                                    children: [
+                                        new Paragraph({ text: '1. SUBJECTIVE', bold: true }),
+                                        new Paragraph(`Focus: ${get('session-focus')}`),
+                                        new Paragraph(get('subjective'))
+                                    ]
+                                })
                             ]}),
                             new TableRow({ children: [
-                                new TableCell({ columnSpan: 3, children: [
-                                    new Paragraph({ text: '2. OBJECTIVE', bold: true }),
-                                    new Paragraph(get('objective'))
-                                ]})
+                                new TableCell({
+                                    columnSpan: 3,
+                                    borders: {
+                                        top: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+                                        bottom: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+                                        left: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+                                        right: { style: BorderStyle.SINGLE, size: 1, color: "000000" }
+                                    },
+                                    children: [
+                                        new Paragraph({ text: '2. OBJECTIVE', bold: true }),
+                                        new Paragraph(get('objective'))
+                                    ]
+                                })
                             ]}),
                             new TableRow({ children: [
-                                new TableCell({ columnSpan: 3, children: [
-                                    new Paragraph({ text: '3. ASSESSMENT', bold: true }),
-                                    new Paragraph(get('assessment'))
-                                ]})
+                                new TableCell({
+                                    columnSpan: 3,
+                                    borders: {
+                                        top: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+                                        bottom: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+                                        left: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+                                        right: { style: BorderStyle.SINGLE, size: 1, color: "000000" }
+                                    },
+                                    children: [
+                                        new Paragraph({ text: '3. ASSESSMENT', bold: true }),
+                                        new Paragraph(get('assessment'))
+                                    ]
+                                })
                             ]}),
                             new TableRow({ children: [
-                                new TableCell({ columnSpan: 3, children: [
-                                    new Paragraph({ text: '4. PLAN', bold: true }),
-                                    new Paragraph(get('plan'))
-                                ]})
+                                new TableCell({
+                                    columnSpan: 3,
+                                    borders: {
+                                        top: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+                                        bottom: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+                                        left: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+                                        right: { style: BorderStyle.SINGLE, size: 1, color: "000000" }
+                                    },
+                                    children: [
+                                        new Paragraph({ text: '4. PLAN', bold: true }),
+                                        new Paragraph(get('plan'))
+                                    ]
+                                })
                             ]})
                         ]
                     })
@@ -195,10 +344,22 @@ window.exportCaseNote = async function() {
 
         const blob = await Packer.toBlob(doc);
         const clientId = get('client-id').trim() || 'Client';
-        saveAs(blob, `Case_Note_${clientId}.docx`);
+        if (typeof saveAs !== 'undefined') {
+            saveAs(blob, `Case_Note_${clientId}.docx`);
+        } else {
+            // Fallback download method
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.href = url;
+            link.download = `Case_Note_${clientId}.docx`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
         alert('Case note exported successfully!');
     } catch (error) {
-        alert('Error: ' + error.message);
-        console.error(error);
+        console.error('Export error:', error);
+        alert('Error exporting case note: ' + error.message);
     }
 };
