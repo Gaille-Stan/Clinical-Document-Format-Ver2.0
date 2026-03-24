@@ -1,31 +1,3 @@
-// Check if docx is loaded
-let docxLoaded = false;
-
-// Function to wait for docx to load
-function waitForDocx() {
-    return new Promise((resolve) => {
-        if (typeof docx !== 'undefined') {
-            docxLoaded = true;
-            resolve(true);
-            return;
-        }
-        
-        // Check every 100ms for up to 10 seconds
-        let attempts = 0;
-        const interval = setInterval(() => {
-            attempts++;
-            if (typeof docx !== 'undefined') {
-                clearInterval(interval);
-                docxLoaded = true;
-                resolve(true);
-            } else if (attempts >= 100) {
-                clearInterval(interval);
-                resolve(false);
-            }
-        }, 100);
-    });
-}
-
 // Tab switching
 window.openTab = function(tabName) {
     document.querySelectorAll('.tab-panel').forEach(t => t.classList.remove('active'));
@@ -67,38 +39,64 @@ window.addHobby = (v = '') => addRow('hobby-list', 'Hobby', v);
 window.addMusic = (v = '') => addRow('music-list', 'Music', v);
 window.addFilm = (v = '') => addRow('film-list', 'Film/Show', v);
 
+// Global variable to track docx availability
+let docxReady = false;
+
+// Function to check if docx is loaded
+function checkDocx() {
+    return new Promise((resolve) => {
+        if (typeof window.docx !== 'undefined') {
+            resolve(true);
+            return;
+        }
+        
+        let attempts = 0;
+        const interval = setInterval(() => {
+            attempts++;
+            if (typeof window.docx !== 'undefined') {
+                clearInterval(interval);
+                resolve(true);
+            } else if (attempts > 50) { // 5 seconds timeout
+                clearInterval(interval);
+                resolve(false);
+            }
+        }, 100);
+    });
+}
+
 // Initialize app
 document.addEventListener('DOMContentLoaded', async function() {
-    // Show loading indicator
     const loadingDiv = document.getElementById('loading-indicator');
-    if (loadingDiv) loadingDiv.style.display = 'block';
+    
+    // Show loading
+    if (loadingDiv) {
+        loadingDiv.style.display = 'block';
+        loadingDiv.style.background = '#f39c12';
+        loadingDiv.innerHTML = '⏳ Loading docx library...';
+    }
     
     // Wait for docx to load
-    const loaded = await waitForDocx();
-    
-    if (loadingDiv) loadingDiv.style.display = 'none';
+    const loaded = await checkDocx();
     
     if (loaded) {
+        docxReady = true;
+        if (loadingDiv) {
+            loadingDiv.style.background = '#27ae60';
+            loadingDiv.innerHTML = '✓ Ready to export';
+            setTimeout(() => {
+                if (loadingDiv) loadingDiv.style.display = 'none';
+            }, 2000);
+        }
         console.log('docx library loaded successfully!');
-        // Enable export buttons
-        const timelineBtn = document.getElementById('exportTimelineBtn');
-        const caseNoteBtn = document.getElementById('exportCaseNoteBtn');
-        if (timelineBtn) timelineBtn.disabled = false;
-        if (caseNoteBtn) caseNoteBtn.disabled = false;
     } else {
-        console.error('Failed to load docx library');
-        alert('Failed to load the document generation library. Please check your internet connection and refresh the page.');
-        // Disable export buttons
-        const timelineBtn = document.getElementById('exportTimelineBtn');
-        const caseNoteBtn = document.getElementById('exportCaseNoteBtn');
-        if (timelineBtn) {
-            timelineBtn.disabled = true;
-            timelineBtn.title = 'Library failed to load. Please refresh the page.';
+        if (loadingDiv) {
+            loadingDiv.style.background = '#e74c3c';
+            loadingDiv.innerHTML = '✗ Failed to load. Using fallback method.';
+            setTimeout(() => {
+                if (loadingDiv) loadingDiv.style.display = 'none';
+            }, 3000);
         }
-        if (caseNoteBtn) {
-            caseNoteBtn.disabled = true;
-            caseNoteBtn.title = 'Library failed to load. Please refresh the page.';
-        }
+        console.warn('docx library not loaded, using fallback');
     }
     
     // Add initial timeline row
@@ -123,16 +121,66 @@ document.addEventListener('DOMContentLoaded', async function() {
     console.log('App ready!');
 });
 
+// Helper function to create HTML content for fallback export
+function generateHTMLContent(title, content) {
+    return `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>${title}</title>
+            <style>
+                body {
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    margin: 40px;
+                    line-height: 1.6;
+                }
+                h1 {
+                    color: #2c3e50;
+                    text-align: center;
+                    border-bottom: 2px solid #3498db;
+                    padding-bottom: 10px;
+                }
+                h2 {
+                    color: #34495e;
+                    margin-top: 30px;
+                }
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin: 20px 0;
+                }
+                th {
+                    background: #34495e;
+                    color: white;
+                    padding: 10px;
+                    text-align: left;
+                }
+                td {
+                    border: 1px solid #ddd;
+                    padding: 8px;
+                }
+                ul {
+                    margin: 10px 0;
+                }
+                li {
+                    margin: 5px 0;
+                }
+                .section {
+                    margin: 20px 0;
+                }
+            </style>
+        </head>
+        <body>
+            ${content}
+        </body>
+        </html>
+    `;
+}
+
 // EXPORT FUNCTIONS
 window.exportTimeline = async function() {
     try {
-        if (!docxLoaded || typeof docx === 'undefined') {
-            alert('Document library is still loading. Please wait a moment and try again.');
-            return;
-        }
-        
-        const { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, AlignmentType, BorderStyle, TextRun } = docx;
-        
         const rows = Array.from(document.querySelectorAll('#timeline-rows tr'));
         
         if (rows.length === 0) {
@@ -140,127 +188,81 @@ window.exportTimeline = async function() {
             return;
         }
 
-        // Create table rows with data
-        const tableRows = [];
-        
-        // Add header row
-        const headerCells = ['Age/Period', 'Symptoms', 'Context', 'Outcomes'].map(headerText => 
-            new TableCell({
-                borders: {
-                    top: { style: BorderStyle.SINGLE, size: 1 },
-                    bottom: { style: BorderStyle.SINGLE, size: 1 },
-                    left: { style: BorderStyle.SINGLE, size: 1 },
-                    right: { style: BorderStyle.SINGLE, size: 1 }
-                },
-                shading: { fill: "34495E" },
-                children: [new Paragraph({
-                    children: [new TextRun({ text: headerText, bold: true, color: "FFFFFF" })]
-                })]
-            })
-        );
-        tableRows.push(new TableRow({ children: headerCells }));
-        
-        // Add data rows
-        rows.forEach(row => {
-            const inputs = Array.from(row.querySelectorAll('input'));
-            const dataCells = inputs.slice(0, 4).map(input => 
-                new TableCell({
-                    borders: {
-                        top: { style: BorderStyle.SINGLE, size: 1 },
-                        bottom: { style: BorderStyle.SINGLE, size: 1 },
-                        left: { style: BorderStyle.SINGLE, size: 1 },
-                        right: { style: BorderStyle.SINGLE, size: 1 }
-                    },
-                    children: [new Paragraph(input.value || '')]
-                })
-            );
-            tableRows.push(new TableRow({ children: dataCells }));
-        });
-
         // Get list data
         const family = Array.from(document.querySelectorAll('#family-list input')).map(i => i.value).filter(v => v);
         const hobbies = Array.from(document.querySelectorAll('#hobby-list input')).map(i => i.value).filter(v => v);
         const music = Array.from(document.querySelectorAll('#music-list input')).map(i => i.value).filter(v => v);
         const films = Array.from(document.querySelectorAll('#film-list input')).map(i => i.value).filter(v => v);
 
-        // Create document sections
-        const children = [
-            new Paragraph({
-                children: [new TextRun({ text: 'CLIENT TIMELINE & BACKGROUND', bold: true, size: 32 })],
-                alignment: AlignmentType.CENTER,
-                spacing: { after: 400 }
-            }),
-            new Paragraph({ text: '' }),
-            new Paragraph({
-                children: [new TextRun({ text: 'TIMELINE HISTORY', bold: true, size: 24 })],
-                spacing: { after: 200 }
-            }),
-            new Table({
-                width: { size: 100, type: WidthType.PERCENTAGE },
-                rows: tableRows
-            }),
-            new Paragraph({ text: '' }),
-            new Paragraph({
-                children: [new TextRun({ text: 'RELATIONSHIPS', bold: true, size: 24 })],
-                spacing: { before: 400, after: 200 }
-            })
-        ];
+        // Build HTML content
+        let tableHTML = '<table><thead><tr><th>Age/Period</th><th>Symptoms</th><th>Context</th><th>Outcomes</th></tr></thead><tbody>';
         
-        // Add relationships
+        rows.forEach(row => {
+            const inputs = Array.from(row.querySelectorAll('input'));
+            tableHTML += '<tr>';
+            inputs.slice(0, 4).forEach(input => {
+                tableHTML += `<td>${input.value || ''}</td>`;
+            });
+            tableHTML += '</tr>';
+        });
+        tableHTML += '</tbody></table>';
+        
+        let relationshipsHTML = '<div class="section"><h2>RELATIONSHIPS</h2><ul>';
         if (family.length > 0) {
             family.forEach(f => {
-                children.push(new Paragraph({ children: [new TextRun({ text: `• ${f}` })] }));
+                relationshipsHTML += `<li>${f}</li>`;
             });
         } else {
-            children.push(new Paragraph({ children: [new TextRun({ text: 'None listed' })] }));
+            relationshipsHTML += '<li>None listed</li>';
         }
+        relationshipsHTML += '</ul></div>';
         
-        // Add interests section
-        children.push(
-            new Paragraph({ text: '' }),
-            new Paragraph({
-                children: [new TextRun({ text: 'INTERESTS', bold: true, size: 24 })],
-                spacing: { before: 400, after: 200 }
-            }),
-            new Paragraph({ children: [new TextRun({ text: 'Hobbies:', bold: true })] })
-        );
-        
+        let interestsHTML = '<div class="section"><h2>INTERESTS</h2>';
+        interestsHTML += '<h3>Hobbies:</h3><ul>';
         if (hobbies.length > 0) {
             hobbies.forEach(h => {
-                children.push(new Paragraph({ children: [new TextRun({ text: `  • ${h}` })] }));
+                interestsHTML += `<li>${h}</li>`;
             });
         } else {
-            children.push(new Paragraph({ children: [new TextRun({ text: '  • None listed' })] }));
+            interestsHTML += '<li>None listed</li>';
         }
+        interestsHTML += '</ul>';
         
-        children.push(new Paragraph({ children: [new TextRun({ text: 'Music:', bold: true })] }));
+        interestsHTML += '<h3>Music:</h3><ul>';
         if (music.length > 0) {
             music.forEach(m => {
-                children.push(new Paragraph({ children: [new TextRun({ text: `  • ${m}` })] }));
+                interestsHTML += `<li>${m}</li>`;
             });
         } else {
-            children.push(new Paragraph({ children: [new TextRun({ text: '  • None listed' })] }));
+            interestsHTML += '<li>None listed</li>';
         }
+        interestsHTML += '</ul>';
         
-        children.push(new Paragraph({ children: [new TextRun({ text: 'Films/Shows:', bold: true })] }));
+        interestsHTML += '<h3>Films/Shows:</h3><ul>';
         if (films.length > 0) {
             films.forEach(f => {
-                children.push(new Paragraph({ children: [new TextRun({ text: `  • ${f}` })] }));
+                interestsHTML += `<li>${f}</li>`;
             });
         } else {
-            children.push(new Paragraph({ children: [new TextRun({ text: '  • None listed' })] }));
+            interestsHTML += '<li>None listed</li>';
         }
-
-        const doc = new Document({
-            sections: [{
-                properties: {},
-                children: children
-            }]
-        });
-
-        const blob = await Packer.toBlob(doc);
-        saveAs(blob, 'Client_Timeline.docx');
+        interestsHTML += '</ul></div>';
+        
+        const fullHTML = `
+            <h1>CLIENT TIMELINE & BACKGROUND</h1>
+            <div class="section">
+                <h2>TIMELINE HISTORY</h2>
+                ${tableHTML}
+            </div>
+            ${relationshipsHTML}
+            ${interestsHTML}
+        `;
+        
+        const htmlContent = generateHTMLContent('Client Timeline', fullHTML);
+        const blob = new Blob([htmlContent], { type: 'application/msword' });
+        saveAs(blob, 'Client_Timeline.doc');
         alert('Timeline exported successfully!');
+        
     } catch (error) {
         console.error('Export error:', error);
         alert('Error exporting timeline: ' + error.message);
@@ -269,13 +271,6 @@ window.exportTimeline = async function() {
 
 window.exportCaseNote = async function() {
     try {
-        if (!docxLoaded || typeof docx === 'undefined') {
-            alert('Document library is still loading. Please wait a moment and try again.');
-            return;
-        }
-        
-        const { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, AlignmentType, BorderStyle, TextRun } = docx;
-        
         const get = (id) => document.getElementById(id)?.value || '';
         
         const clientId = get('client-id') || 'Client';
@@ -291,139 +286,69 @@ window.exportCaseNote = async function() {
         const objective = get('objective') || '';
         const assessment = get('assessment') || '';
         const plan = get('plan') || '';
-
-        // Create table rows for case note
-        const tableRows = [
-            // Header row with 3 columns
-            new TableRow({
-                children: [
-                    new TableCell({
-                        borders: { top: { style: BorderStyle.SINGLE }, bottom: { style: BorderStyle.SINGLE }, left: { style: BorderStyle.SINGLE }, right: { style: BorderStyle.SINGLE } },
-                        children: [new Paragraph({ children: [new TextRun({ text: 'Client Information', bold: true })] })]
-                    }),
-                    new TableCell({
-                        borders: { top: { style: BorderStyle.SINGLE }, bottom: { style: BorderStyle.SINGLE }, left: { style: BorderStyle.SINGLE }, right: { style: BorderStyle.SINGLE } },
-                        children: [new Paragraph({ children: [new TextRun({ text: 'Session Details', bold: true })] })]
-                    }),
-                    new TableCell({
-                        borders: { top: { style: BorderStyle.SINGLE }, bottom: { style: BorderStyle.SINGLE }, left: { style: BorderStyle.SINGLE }, right: { style: BorderStyle.SINGLE } },
-                        children: [new Paragraph({ children: [new TextRun({ text: 'Additional', bold: true })] })]
-                    })
-                ]
-            }),
-            // Data row
-            new TableRow({
-                children: [
-                    new TableCell({
-                        borders: { top: { style: BorderStyle.SINGLE }, bottom: { style: BorderStyle.SINGLE }, left: { style: BorderStyle.SINGLE }, right: { style: BorderStyle.SINGLE } },
-                        children: [
-                            new Paragraph(`ID: ${clientId}`),
-                            new Paragraph(`Client: ${demographics}`)
-                        ]
-                    }),
-                    new TableCell({
-                        borders: { top: { style: BorderStyle.SINGLE }, bottom: { style: BorderStyle.SINGLE }, left: { style: BorderStyle.SINGLE }, right: { style: BorderStyle.SINGLE } },
-                        children: [
-                            new Paragraph(`Therapist: ${therapist}`),
-                            new Paragraph(`Date: ${sessionDate}`),
-                            new Paragraph(`Time: ${sessionTime}`)
-                        ]
-                    }),
-                    new TableCell({
-                        borders: { top: { style: BorderStyle.SINGLE }, bottom: { style: BorderStyle.SINGLE }, left: { style: BorderStyle.SINGLE }, right: { style: BorderStyle.SINGLE } },
-                        children: [
-                            new Paragraph(`Supervisor: ${supervisor}`),
-                            new Paragraph(`Session #: ${sessionNum}`)
-                        ]
-                    })
-                ]
-            }),
-            // Agenda row
-            new TableRow({
-                children: [
-                    new TableCell({
-                        columnSpan: 3,
-                        borders: { top: { style: BorderStyle.SINGLE }, bottom: { style: BorderStyle.SINGLE }, left: { style: BorderStyle.SINGLE }, right: { style: BorderStyle.SINGLE } },
-                        children: [new Paragraph({ children: [new TextRun({ text: `Agenda: ${agenda}`, bold: true })] })]
-                    })
-                ]
-            }),
-            // Subjective
-            new TableRow({
-                children: [
-                    new TableCell({
-                        columnSpan: 3,
-                        borders: { top: { style: BorderStyle.SINGLE }, bottom: { style: BorderStyle.SINGLE }, left: { style: BorderStyle.SINGLE }, right: { style: BorderStyle.SINGLE } },
-                        children: [
-                            new Paragraph({ children: [new TextRun({ text: '1. SUBJECTIVE', bold: true })] }),
-                            new Paragraph(`Focus: ${sessionFocus}`),
-                            new Paragraph(subjective || '')
-                        ]
-                    })
-                ]
-            }),
-            // Objective
-            new TableRow({
-                children: [
-                    new TableCell({
-                        columnSpan: 3,
-                        borders: { top: { style: BorderStyle.SINGLE }, bottom: { style: BorderStyle.SINGLE }, left: { style: BorderStyle.SINGLE }, right: { style: BorderStyle.SINGLE } },
-                        children: [
-                            new Paragraph({ children: [new TextRun({ text: '2. OBJECTIVE', bold: true })] }),
-                            new Paragraph(objective || '')
-                        ]
-                    })
-                ]
-            }),
-            // Assessment
-            new TableRow({
-                children: [
-                    new TableCell({
-                        columnSpan: 3,
-                        borders: { top: { style: BorderStyle.SINGLE }, bottom: { style: BorderStyle.SINGLE }, left: { style: BorderStyle.SINGLE }, right: { style: BorderStyle.SINGLE } },
-                        children: [
-                            new Paragraph({ children: [new TextRun({ text: '3. ASSESSMENT', bold: true })] }),
-                            new Paragraph(assessment || '')
-                        ]
-                    })
-                ]
-            }),
-            // Plan
-            new TableRow({
-                children: [
-                    new TableCell({
-                        columnSpan: 3,
-                        borders: { top: { style: BorderStyle.SINGLE }, bottom: { style: BorderStyle.SINGLE }, left: { style: BorderStyle.SINGLE }, right: { style: BorderStyle.SINGLE } },
-                        children: [
-                            new Paragraph({ children: [new TextRun({ text: '4. PLAN', bold: true })] }),
-                            new Paragraph(plan || '')
-                        ]
-                    })
-                ]
-            })
-        ];
-
-        const doc = new Document({
-            sections: [{
-                properties: {},
-                children: [
-                    new Paragraph({
-                        children: [new TextRun({ text: 'SESSION CASE NOTE', bold: true, size: 32 })],
-                        alignment: AlignmentType.CENTER,
-                        spacing: { after: 400 }
-                    }),
-                    new Paragraph({ text: '' }),
-                    new Table({
-                        width: { size: 100, type: WidthType.PERCENTAGE },
-                        rows: tableRows
-                    })
-                ]
-            }]
-        });
-
-        const blob = await Packer.toBlob(doc);
-        saveAs(blob, `Case_Note_${clientId.replace(/\s/g, '_')}.docx`);
+        
+        const fullHTML = `
+            <h1>SESSION CASE NOTE</h1>
+            
+            <table style="width: 100%; margin: 20px 0;">
+                <tr style="background: #34495e; color: white;">
+                    <th>Client Information</th>
+                    <th>Session Details</th>
+                    <th>Additional</th>
+                </tr>
+                <tr>
+                    <td>
+                        <strong>ID:</strong> ${clientId}<br>
+                        <strong>Client:</strong> ${demographics}
+                    </td>
+                    <td>
+                        <strong>Therapist:</strong> ${therapist}<br>
+                        <strong>Date:</strong> ${sessionDate}<br>
+                        <strong>Time:</strong> ${sessionTime}
+                    </td>
+                    <td>
+                        <strong>Supervisor:</strong> ${supervisor}<br>
+                        <strong>Session #:</strong> ${sessionNum}
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="3">
+                        <strong>Agenda:</strong> ${agenda}
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="3">
+                        <h2>1. SUBJECTIVE</h2>
+                        <strong>Focus:</strong> ${sessionFocus}<br>
+                        ${subjective.replace(/\n/g, '<br>')}
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="3">
+                        <h2>2. OBJECTIVE</h2>
+                        ${objective.replace(/\n/g, '<br>')}
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="3">
+                        <h2>3. ASSESSMENT</h2>
+                        ${assessment.replace(/\n/g, '<br>')}
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="3">
+                        <h2>4. PLAN</h2>
+                        ${plan.replace(/\n/g, '<br>')}
+                    </td>
+                </tr>
+            </table>
+        `;
+        
+        const htmlContent = generateHTMLContent('Session Case Note', fullHTML);
+        const blob = new Blob([htmlContent], { type: 'application/msword' });
+        saveAs(blob, `Case_Note_${clientId.replace(/\s/g, '_')}.doc`);
         alert('Case note exported successfully!');
+        
     } catch (error) {
         console.error('Export error:', error);
         alert('Error exporting case note: ' + error.message);
