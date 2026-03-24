@@ -5,11 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clinical Notes</title>
     <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.min.js"></script>
 </head>
 <body>
     <div class="container">
+        <!-- Loading indicator -->
+        <div id="loading-indicator" style="display: none; position: fixed; top: 10px; right: 10px; background: #3498db; color: white; padding: 10px 20px; border-radius: 5px; z-index: 1000;">
+            Loading docx library...
+        </div>
+        
         <!-- Tabs -->
         <div class="tabs">
             <button class="tab-btn active" onclick="openTab('timeline')">Timeline & Background</button>
@@ -19,7 +24,7 @@
         <!-- TIMELINE TAB -->
         <div id="timeline" class="tab-panel active">
             <div class="btn-group">
-                <button class="btn btn-green" onclick="exportTimeline()">📄 Export Timeline to Word</button>
+                <button class="btn btn-green" id="exportTimelineBtn" onclick="exportTimeline()">📄 Export Timeline to Word</button>
             </div>
             <h2>Client Timeline & Background</h2>
             
@@ -70,7 +75,7 @@
         <!-- CASE NOTE TAB -->
         <div id="casenote" class="tab-panel">
             <div class="btn-group">
-                <button class="btn btn-green" onclick="exportCaseNote()">📄 Export Case Note to Word</button>
+                <button class="btn btn-green" id="exportCaseNoteBtn" onclick="exportCaseNote()">📄 Export Case Note to Word</button>
             </div>
             <h2>Session Case Note</h2>
             
